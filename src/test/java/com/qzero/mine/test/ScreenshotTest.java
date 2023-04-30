@@ -19,7 +19,7 @@ public class ScreenshotTest {
         BufferedImage screenshot = (new Robot()).createScreenCapture(new
                 Rectangle(0, 0, (int) d.getWidth(), (int) d.getHeight()));
 
-        ImageIO.write(screenshot,"png",new File("game.png"));
+        ImageIO.write(screenshot,"png",new File("test_ss.png"));
     }
 
 }

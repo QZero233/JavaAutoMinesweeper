@@ -11,18 +11,18 @@ import java.util.Map;
 
 public class ImageUtils {
 
-    public static final ImageProfile PROFILE_9X9=new ImageProfile(745,259,9,119);
-    public static final ImageProfile PROFILE_16X16=new ImageProfile(674,189,16,76);
-    public static final ImageProfile PROFILE_16X16_BY_ROBOT=new ImageProfile(448,125,16,51);
+    public static final ImageProfile PROFILE_9X9=new ImageProfile(745,259,9,119,"img_samples/9x9/");
+    public static final ImageProfile PROFILE_16X16=new ImageProfile(674,189,16,76,"img_samples/16x16/");
+    public static final ImageProfile PROFILE_16X16_BY_ROBOT=new ImageProfile(448,125,16,51,"img_samples/16x16_robot/");
 
-    public static final ImageProfile PROFILE_24X24_BY_ROBOT=new ImageProfile(423,101,24,38);
+    public static final ImageProfile PROFILE_24X24_BY_ROBOT=new ImageProfile(424,102,24,36,"img_samples/24x24_robot/");
 
-    private static Map<ImageProfile.ImageType, List<BufferedImage>> cacheMap=new HashMap<>();
+    public static final ImageProfile PROFILE_16X30_BY_ROBOT=new ImageProfile(96,126,30,16,50,51,"16x30_robot");
+
+    private static Map<ImageProfile.ImageType, List<Matrix>> cacheMap=new HashMap<>();
 
     public static void loadSamples(ImageProfile profile) throws Exception{
-        scaleOriginSamples(profile.getBlockSize());
-
-        File[] dirs=new File("image_samples/").listFiles();
+        File[] dirs=new File(profile.getImagePath()).listFiles();
         if(dirs.length==0){
             return;
         }
@@ -30,10 +30,18 @@ public class ImageUtils {
         for(File dir:dirs){
             File[] files=dir.listFiles();
 
-            List<BufferedImage> bufferedImageList=new ArrayList<>();
+            List<Matrix> bufferedImageList=new ArrayList<>();
             for(File file:files){
                 BufferedImage image=ImageIO.read(file);
-                bufferedImageList.add(image);
+
+                Matrix matrix=new Matrix(image.getHeight(),image.getWidth());
+                for(int x=0;x<image.getWidth();x++){
+                    for(int y=0;y<image.getHeight();y++){
+                        matrix.set(x,y,getGrayAvg(image.getRGB(x,y)));
+                    }
+                }
+
+                bufferedImageList.add(matrix);
             }
 
             ImageProfile.ImageType type=null;
@@ -69,14 +77,15 @@ public class ImageUtils {
     }
 
     public static void segmentImage(BufferedImage game,ImageProfile profile) throws Exception{
-        int blockSize=profile.getBlockSize();
-        for(int x=0;x<profile.getRowNum();x++){
-            for(int y=0;y<profile.getRowNum();y++){
-                BufferedImage newImage=new BufferedImage(blockSize,blockSize,BufferedImage.TYPE_INT_ARGB);
+        int xSize= profile.getXSize();
+        int ySize= profile.getYSize();
+        for(int x=0;x<profile.getXNum();x++){
+            for(int y=0;y<profile.getYNum();y++){
+                BufferedImage newImage=new BufferedImage(xSize,ySize,BufferedImage.TYPE_INT_ARGB);
 
-                for(int i=0;i<blockSize;i++){
-                    for(int j=0;j<blockSize;j++){
-                        int color=game.getRGB(profile.getxOffset()+x*blockSize+i,profile.getyOffset()+y*blockSize+j);
+                for(int i=0;i<xSize;i++){
+                    for(int j=0;j<ySize;j++){
+                        int color=game.getRGB(profile.getXOffset()+x*xSize+i,profile.getYOffset()+y*ySize+j);
                         newImage.setRGB(i,j,color);
                     }
                 }
@@ -106,11 +115,19 @@ public class ImageUtils {
     }
 
     public static int[][] getGameMatrix(BufferedImage game,ImageProfile profile) throws Exception{
-        int rowNum= profile.getRowNum();
-        int[][] result=new int[rowNum][rowNum];
-        for(int x=0;x<rowNum;x++){
-            for(int y=0;y<rowNum;y++){
-                ImageProfile.ImageType type=getType(game,profile,x,y);
+        Matrix gameImage=new Matrix(game.getHeight(),game.getWidth());
+        for(int x=0;x<game.getWidth();x++){
+            for(int y=0;y<game.getHeight();y++){
+                gameImage.set(x,y,getGrayAvg(game.getRGB(x,y)));
+            }
+        }
+
+        int xNum= profile.getXNum();
+        int yNum= profile.getYNum();
+        int[][] result=new int[xNum][yNum];
+        for(int x=0;x<xNum;x++){
+            for(int y=0;y<yNum;y++){
+                ImageProfile.ImageType type=getType(gameImage,profile,x,y);
                 result[x][y]=type.value;
             }
         }
@@ -118,15 +135,15 @@ public class ImageUtils {
         return result;
     }
 
-    public static ImageProfile.ImageType getType(BufferedImage game,ImageProfile profile,int x,int y) throws Exception{
+    public static ImageProfile.ImageType getType(Matrix game,ImageProfile profile,int x,int y) throws Exception{
         //Check size
 
         double bestLikelihood=1e10;
         ImageProfile.ImageType bestType =null;
 
         for(ImageProfile.ImageType type:cacheMap.keySet()){
-            List<BufferedImage> imageList=cacheMap.get(type);
-            for(BufferedImage image:imageList){
+            List<Matrix> imageList=cacheMap.get(type);
+            for(Matrix image:imageList){
                 double likelihood=getLikelihood(game,image,profile,x,y);
                 if(likelihood < bestLikelihood){
                     bestLikelihood=likelihood;
@@ -138,8 +155,9 @@ public class ImageUtils {
         return bestType;
     }
 
-    public static double getLikelihood(BufferedImage game,BufferedImage target,ImageProfile profile,int x,int y){
-        return getLikelihood(game,target,x,y,profile.getBlockSize(),profile.getxOffset(),profile.getyOffset());
+    public static double getLikelihood(Matrix game,Matrix target,ImageProfile profile,int x,int y){
+        return getLikelihood(game,target,x,y,profile.getXSize(),profile.getYSize()
+                ,profile.getXOffset(),profile.getYOffset());
     }
 
     private static int getGrayAvg(int color){
@@ -149,38 +167,33 @@ public class ImageUtils {
         return Math.round((red * 0.299f + green * 0.587f + blue * 0.114f));
     }
 
-    public static double getLikelihood(BufferedImage game,BufferedImage target,int x,int y,int blockSize,int xOffset,int yOffset){
+    public static double getLikelihood(Matrix game,Matrix target,int x,int y,int xSize,int ySize,int xOffset,int yOffset){
         double currentSum=0;
 
         //Only compare central parts 1/4 to 3/4
-        for(int k=target.getWidth()/4;k<target.getWidth()*3/4;k++){
-            for(int l=target.getHeight()/4;l<target.getHeight()*3/4;l++){
+        for(int k=target.getCol()/8;k<target.getCol()*7/8;k++){
+            for(int l=target.getRow()/8;l<target.getRow()*7/8;l++){
                 //Origin x: x*blockSize + k
                 //Origin y: y*blockSize + l
                 //Target x: k
                 //Target y: l
 
-                int srcColor=game.getRGB(x*blockSize + k + xOffset,y*blockSize + l + yOffset);
-                int targetColor=target.getRGB(k,l);
-
-                //Get gray average
-                srcColor=getGrayAvg(srcColor);
-                targetColor=getGrayAvg(targetColor);
-
+                int srcColor=game.get(x*xSize + k + xOffset,y*ySize + l + yOffset);
+                int targetColor=target.get(k,l);
 
                 int abs=Math.abs(srcColor-targetColor);
                 currentSum+=abs;
             }
         }
 
-        double averageSum=currentSum/(target.getWidth()*target.getHeight());
+        double averageSum=currentSum/(target.getCol()*target.getRow());
 
         return averageSum;
     }
 
     public static Coordinate getCoordinate(ImageProfile profile,int x,int y){
-        int epsilon=profile.getBlockSize()/2;
-        return new Coordinate(x*profile.getBlockSize()+profile.getxOffset()+epsilon,y*profile.getBlockSize()+profile.getyOffset()+epsilon);
+        return new Coordinate(x*profile.getXSize()+profile.getXOffset()+profile.getXSize()/2,
+                y*profile.getYSize()+profile.getYOffset()+profile.getYSize()/2);
     }
 
 }

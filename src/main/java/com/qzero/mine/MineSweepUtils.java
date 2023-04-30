@@ -5,7 +5,7 @@ import java.util.List;
 
 public class MineSweepUtils {
 
-    public static List<Action> getSolution(int[][] game, int rowNum){
+    public static List<Action> getSolution(int[][] game,int xNum,int yNum){
 
         List<Action> result=new ArrayList<>();
 
@@ -19,8 +19,8 @@ public class MineSweepUtils {
                 {0,1},
                 {0,-1}
         };
-        for(int i=0;i<rowNum;i++){
-            for(int j=0;j<rowNum;j++){
+        for(int i=0;i<xNum;i++){
+            for(int j=0;j<yNum;j++){
 
                 int current=game[i][j];
                 if(current<=0)
@@ -33,7 +33,7 @@ public class MineSweepUtils {
                     int nX=i+directions[k][0];
                     int nY=j+directions[k][1];
 
-                    if(nX < 0 || nX >=rowNum || nY < 0 || nY >=rowNum)
+                    if(nX < 0 || nX >=xNum || nY < 0 || nY >=yNum)
                         continue;
 
                     if(game[nX][nY]==-1)
@@ -51,7 +51,7 @@ public class MineSweepUtils {
                         int nX=i+directions[k][0];
                         int nY=j+directions[k][1];
 
-                        if(nX < 0 || nX >=rowNum || nY < 0 || nY >=rowNum)
+                        if(nX < 0 || nX >=xNum || nY < 0 || nY >=yNum)
                             continue;
 
                         if(game[nX][nY]==-1 && !result.contains(new Action(nX,nY, Action.Type.OPEN))){
@@ -67,7 +67,7 @@ public class MineSweepUtils {
                         int nX=i+directions[k][0];
                         int nY=j+directions[k][1];
 
-                        if(nX < 0 || nX >=rowNum || nY < 0 || nY >=rowNum)
+                        if(nX < 0 || nX >=xNum || nY < 0 || nY >=yNum)
                             continue;
 
                         if(game[nX][nY]==-1 && !result.contains(new Action(nX,nY, Action.Type.MARK))){
@@ -82,5 +82,7 @@ public class MineSweepUtils {
 
         return result;
     }
+
+
 
 }

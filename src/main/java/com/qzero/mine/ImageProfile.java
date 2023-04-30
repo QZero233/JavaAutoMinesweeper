@@ -4,8 +4,11 @@ public class ImageProfile {
 
     private int xOffset;
     private int yOffset;
-    private int rowNum;
-    private int blockSize;
+    private int xNum;
+    private int yNum;
+    private int xSize;
+    private int ySize;
+    private String imagePath;
 
     public enum ImageType{
         ONE(1),
@@ -30,43 +33,80 @@ public class ImageProfile {
     public ImageProfile() {
     }
 
-    public ImageProfile(int xOffset, int yOffset, int rowNum, int blockSize) {
+    public ImageProfile(int xOffset, int yOffset, int xNum, int yNum, int xSize, int ySize,String imagePath) {
         this.xOffset = xOffset;
         this.yOffset = yOffset;
-        this.rowNum = rowNum;
-        this.blockSize = blockSize;
+        this.xNum = xNum;
+        this.yNum = yNum;
+        this.xSize = xSize;
+        this.ySize = ySize;
+        this.imagePath=imagePath;
     }
 
-    public int getxOffset() {
+    public ImageProfile(int xOffset, int yOffset, int rowNum, int blockSize,String imagePath) {
+        this.xOffset = xOffset;
+        this.yOffset = yOffset;
+        this.xNum = rowNum;
+        this.yNum = rowNum;
+        this.xSize = blockSize;
+        this.ySize = blockSize;
+        this.imagePath=imagePath;
+    }
+
+    public int getXOffset() {
         return xOffset;
     }
 
-    public void setxOffset(int xOffset) {
+    public void setXOffset(int xOffset) {
         this.xOffset = xOffset;
     }
 
-    public int getyOffset() {
+    public int getYOffset() {
         return yOffset;
     }
 
-    public void setyOffset(int yOffset) {
+    public void setYOffset(int yOffset) {
         this.yOffset = yOffset;
     }
 
-    public int getRowNum() {
-        return rowNum;
+    public int getXNum() {
+        return xNum;
     }
 
-    public void setRowNum(int rowNum) {
-        this.rowNum = rowNum;
+    public void setXNum(int xNum) {
+        this.xNum = xNum;
     }
 
-    public int getBlockSize() {
-        return blockSize;
+    public int getYNum() {
+        return yNum;
     }
 
-    public void setBlockSize(int blockSize) {
-        this.blockSize = blockSize;
+    public void setYNum(int yNum) {
+        this.yNum = yNum;
+    }
+
+    public int getXSize() {
+        return xSize;
+    }
+
+    public void setXSize(int xSize) {
+        this.xSize = xSize;
+    }
+
+    public int getYSize() {
+        return ySize;
+    }
+
+    public void setYSize(int ySize) {
+        this.ySize = ySize;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
 
     @Override
@@ -74,8 +114,11 @@ public class ImageProfile {
         return "ImageProfile{" +
                 "xOffset=" + xOffset +
                 ", yOffset=" + yOffset +
-                ", rowNum=" + rowNum +
-                ", blockSize=" + blockSize +
+                ", xNum=" + xNum +
+                ", yNum=" + yNum +
+                ", xSize=" + xSize +
+                ", ySize=" + ySize +
+                ", imagePath='" + imagePath + '\'' +
                 '}';
     }
 }

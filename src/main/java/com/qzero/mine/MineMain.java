@@ -14,9 +14,11 @@ import java.util.List;
 
 public class MineMain {
 
-    public static Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
-
     public static boolean stop=true;
+
+    public static final ImageProfile profile=ImageUtils.PROFILE_24X24_BY_ROBOT;
+
+    private static Solver solver=new Solver();
 
     public static void main(String[] args) throws Exception{
         //-1 : covered
@@ -28,7 +30,7 @@ public class MineMain {
 //        robot.mousePress(InputEvent.BUTTON3_MASK);
 //        robot.mouseRelease(InputEvent.BUTTON3_MASK);
 
-        ImageUtils.loadSamples(ImageUtils.PROFILE_16X16_BY_ROBOT);
+
 
 //        new Thread(){
 //            @Override
@@ -97,57 +99,74 @@ public class MineMain {
 //            }
 //        };
 
+
+        ImageUtils.loadSamples(profile);
+
         final HotKeyListener listener = new HotKeyListener(){
             @Override
             public void onHotKey(HotKey arg0){
                 System.out.println("Hotkey "+arg0);
 
-                long start=System.currentTimeMillis();
-
-                ImageProfile profile=ImageUtils.PROFILE_16X16_BY_ROBOT;
-                try {
-                    Robot robot=new Robot();
-                    //Get screenshot
-                    BufferedImage screenshot = robot.createScreenCapture(new
-                            Rectangle(0, 0, (int) d.getWidth(), (int) d.getHeight()));
-                    ImageIO.write(screenshot,"png",new File("game.png"));
-
-//                    BufferedImage image=ImageIO.read(new File("game.png"));
-
-                    //Get solution
-                    int[][] game=ImageUtils.getGameMatrix(screenshot,profile);
-                    List<Action> actions=MineSweepUtils.getSolution(game, profile.getRowNum());
-
-                    System.out.println(actions);
-                    System.out.println(System.currentTimeMillis()-start);
-
-                    for(Action action:actions){
-                        Coordinate coordinate=ImageUtils.getCoordinate(profile,action.getX(),action.getY());
-                        robot.mouseMove(coordinate.getX(),coordinate.getY());
-
-                        if(action.getType()== Action.Type.OPEN){
-                            robot.mousePress(InputEvent.BUTTON1_MASK);
-                            robot.mouseRelease(InputEvent.BUTTON1_MASK);
-                        }else{
-                            robot.mousePress(InputEvent.BUTTON3_MASK);
-                            robot.mouseRelease(InputEvent.BUTTON3_MASK);
-                        }
-
-                        Thread.sleep(100);
-                    }
-
-                    robot.mouseMove(0,0);
-
-
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
+                solver.solve();
             }
         };
 
         Provider provider = Provider.getCurrentProvider(true);
         provider.reset();
         provider.register(KeyStroke.getKeyStroke("ctrl LEFT"), listener);
+    }
+
+}
+
+class Solver{
+
+    public static Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
+    private ImageProfile profile=MineMain.profile;
+
+    public synchronized void solve(){
+        long start=System.currentTimeMillis();
+
+        try {
+            Robot robot=new Robot();
+            //Get screenshot
+            BufferedImage screenshot = robot.createScreenCapture(new
+                    Rectangle(0, 0, (int) d.getWidth(), (int) d.getHeight()));
+            ImageIO.write(screenshot,"png",new File("game.png"));
+
+//                    BufferedImage image=ImageIO.read(new File("game.png"));
+
+            //Get solution
+            int[][] game=ImageUtils.getGameMatrix(screenshot,profile);
+
+            System.out.println("Before solve "+(System.currentTimeMillis()-start));
+
+            List<Action> actions=MineSweepUtils.getSolution(game, profile.getXNum(), profile.getYNum());
+
+            System.out.println(actions);
+            System.out.println(System.currentTimeMillis()-start);
+
+            for(Action action:actions){
+                Coordinate coordinate=ImageUtils.getCoordinate(profile,action.getX(),action.getY());
+                robot.mouseMove(coordinate.getX(),coordinate.getY());
+
+                if(action.getType()== Action.Type.OPEN){
+                    robot.mousePress(InputEvent.BUTTON1_MASK);
+                    robot.mouseRelease(InputEvent.BUTTON1_MASK);
+                }else{
+                    robot.mousePress(InputEvent.BUTTON3_MASK);
+                    robot.mouseRelease(InputEvent.BUTTON3_MASK);
+                }
+
+                Thread.sleep(100);
+            }
+
+            robot.mouseMove(0,0);
+
+
+            Thread.sleep(500);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
 }
